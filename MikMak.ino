@@ -1,31 +1,5 @@
-/*
-  State change detection (edge detection)
 
- Often, you don't need to know the state of a digital input all the time,
- but you just need to know when the input changes from one state to another.
- For example, you want to know when a button goes from OFF to ON.  This is called
- state change detection, or edge detection.
-
- This example shows how to detect when a button or button changes from off to on
- and on to off.
-
- The circuit:
- * pushbutton attached to pin 2 from +5V
- * 10K resistor attached to pin 2 from ground
- * LED attached from pin 13 to ground (or use the built-in LED on
-   most Arduino boards)
-
- created  27 Sep 2005
- modified 30 Aug 2011
- by Tom Igoe
-
-This example code is in the public domain.
-
- http://www.arduino.cc/en/Tutorial/ButtonStateChange
-
- */
-
-/*
+/* LCD EXAMPLE USED TO BUILD THIS CODE
 ** Example Arduino sketch for SainSmart I2C LCD Screen 16x2
 ** based on https://bitbucket.org/celem/sainsmart-i2c-lcd/src/3adf8e0d2443/sainlcdtest.ino
 ** by
@@ -44,7 +18,8 @@ This example code is in the public domain.
 */
 
 //Includes
-// for lcd usage 
+
+// for lcd usage - To check if all pins are needed /////////////////////////////////////////////////////////
 #include <Wire.h>
 #include <LCD.h>
 #include <LiquidCrystal_I2C.h>
@@ -58,90 +33,179 @@ This example code is in the public domain.
 #define D5_pin  5
 #define D6_pin  6
 #define D7_pin  7
-// end includes for lcd
-
-// this constant won't change:
-// set button 1 pin - mode select
-const int  buttonPin = 2;    // the pin that the pushbutton is attached to
-// Sample code 
-const int ledPin = 13;       // the pin that the LED is attached to
-
-// LCD stuff
-int n = 1;
-int sensorPin = A0;    // select the input pin for the potentiometer
-
 
 //define LCD
 LiquidCrystal_I2C  lcd(I2C_ADDR, En_pin, Rw_pin, Rs_pin, D4_pin, D5_pin, D6_pin, D7_pin);
+// end includes for lcd ////////////////////////////////////////////////////////////////////////////////////
 
-// Variables will change:
-// To do with Button 1
+
+// set  pin variables
+const int  buttonPin1 = 2;    // cycle through screens
+const int  buttonPin2 = 3;    // switch on webasto -> off/on/half/auto
+const int  buttonPin3 = 4;    // set temperature
+
+const int sensorPin1 = A0;    // Voltage divider 1
+const int sensorPin2 = A1;    // Voltage divider 2
+
+const int ledPin = 13;        // built in led
+
+
+// variables to store sensor data
+int sensorValue = 0;        // variable to pass on sensor info
+int sensorValue2 = 1;        // variable to store the value coming from sensor A2
+
+float voltBat1 = 0;          // convert sensor value to true voltage withe voltage divider formula (x3)
+float voltBat2 = 0;          // convert sensor value to true voltage withe voltage divider formula (x3)
+
+String lcdLine = "";         // to collect valiables and write to lcd in one go
+String lcdLineOld = "";         // to collect valiables and write to lcd in one go
+
+// button variables
 int buttonPushCounter = 0;   // counter for the number of button presses
-int buttonState = 0;         // current state of the button
-int lastButtonState = 0;     // previous state of the button
-// Sensor 12v 1 
-int sensorValue = 0;  // variable to store the value coming from the sensor
-float volt = 0;
 
+// part for button interupts
+volatile int buttonState = 0;         // variable for reading the pushbutton1 status, can change outside of program code
+
+// option variables
+int mode = 0;                // operation mode
 
 void setup() {
 
   //initialise LCD
   lcd.begin (16, 2); //  <<----- My LCD was 16x2
-  // declare the ledPin as an OUTPUT:
-  pinMode(ledPin, OUTPUT);
-
   // Switch on the backlight
   lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
   lcd.setBacklight(HIGH);
   lcd.home (); // go home
-  
-  // initialize the button pin as a input:
-  pinMode(buttonPin, INPUT);
-  // initialize the LED as an output:
+
+  // set pinModes
+  pinMode(buttonPin1, INPUT_PULLUP);
+  pinMode(buttonPin2, INPUT_PULLUP);
+  pinMode(buttonPin3, INPUT_PULLUP);
   pinMode(ledPin, OUTPUT);
   // initialize serial communication:
   Serial.begin(9600);
+
+  // part for interupts
+  attachInterrupt(digitalPinToInterrupt(buttonPin1), pin1_ISR, CHANGE);
+
+  lcd.clear();
+  lcd.setCursor (0, 0);       // go to start of 1nd line
+  lcd.print("MikMak");
 }
 
 
-
 void loop() {
-  // read the pushbutton input pin:
 
-checkButtonPress();
+  // TODO:
 
+  // set option variables
 
+  // read sensor values and populate variables
+  readAllSensors();
 
-  // read the value from the sensor:
-  sensorValue = analogRead(sensorPin);
-  volt = (sensorValue * (5.0 / 1023.0) * 3) - 0.13;
+  // write variables to sd card for logging without Raspberry Pi
+
+  // write variables to serial out for logging on the Raspberry Pi
+  printVariablesToSerial();
   
+  // actions based on mode selected: battery, alarms, temperature, ...
 
 
-/*
-  lcd.setCursor (0, 0);       // go to start of 1nd line
-  lcd.print("Volt 1: ");
-  //volt
-  lcd.setCursor (8, 0);       // go to position 8 of 1st line
-  lcd.print(volt, 2);
-  //delay(1000);
-*/
+  delay(500);
+  Serial.println(buttonPushCounter);
+
+
+
+  switch (buttonPushCounter) {
+    case 1:
+      //do something when var equals 1 --> Battery info
+      lcdLine = "";
+      lcd.home();
+      lcd.setCursor (0, 0);       // go to start of 1st line
+      lcd.print("Battery info");
+      //volt
+      lcd.home();
+      lcd.setCursor (0, 1);       // go to start of 2nd line
+      lcdLine = lcdLine + "A " + voltBat1 + "v B " + voltBat2 + "v";
+      lcd.print(lcdLine);
+      
+      break;
+    case 2:
+      //do something when var equals 2
+
+      break;
+    case 3:
+      //do something when var equals 3
+      
+      break;
+    case 4:
+      //do something when var equals 4
+ 
+      break;
+    default:
+      // if nothing else matches, do the default
+      // default is optional
+      break;
+  }
+
+
+  /*
+    lcd.setCursor (0, 0);       // go to start of 1nd line
+    lcd.print("Volt 1: ");
+    //volt
+    lcd.setCursor (8, 0);       // go to position 8 of 1st line
+    lcd.print(volt, 2);
+    //delay(1000);
+  */
   // turns on the LED every four button pushes by
   // checking the modulo of the button push counter.
   // the modulo function gives you the remainder of
   // the division of two numbers:
+  /*
   if (buttonPushCounter % 4 == 0) {
     digitalWrite(ledPin, HIGH);
   } else {
     digitalWrite(ledPin, LOW);
   }
+  */
+}
+
+void readAllSensors()
+{
+  // read the value fromvolatge divider 1
+
+  voltBat1 = (analogRead(sensorPin1) * (5.0 / 1023.0) * 3) - 0.13;
+  voltBat2 = (analogRead(sensorPin2) * (5.0 / 1023.0) * 3) - 0.13;
+  // read the value fromvolatge divider 2
+  // sensorValue = analogRead(sensorPin2);
+  //voltBat2 = (sensorValue * (5.0 / 1023.0) * 3) - 0.13;
 
 }
 
+void printVariablesToSerial() {
+  String variableList;
+  variableList = variableList + voltBat1 +";"+ voltBat2;
+  Serial.println(variableList); 
+}
 
 
-void checkButtonPress(){
+// Loop through info screens with button 1
+void pin1_ISR() {
+  buttonState = digitalRead(buttonPin1);
+  if (buttonState == LOW) {
+    buttonPushCounter++;
+    // max number of screens
+    if (buttonPushCounter > 4) {
+      buttonPushCounter = 1;
+      Serial.println(buttonPushCounter);
+    }
+  }
+}
+
+/*
+
+void checkButtonPress() {
 
   buttonState = digitalRead(buttonPin);
   // compare the buttonState to its previous state
@@ -150,14 +214,14 @@ void checkButtonPress(){
     if (buttonState == HIGH) {
       // if the current state is HIGH then the button
       // wend from off to on:
-      if(buttonPushCounter == 4){
+      if (buttonPushCounter == 4) {
         buttonPushCounter = 1;
-        }
+      }
       else
       {
         buttonPushCounter++;
-        }
-      
+      }
+
       Serial.println("on");
       Serial.print("number of button pushes:  ");
       Serial.println(buttonPushCounter);
@@ -174,46 +238,14 @@ void checkButtonPress(){
   //for next time through the loop
   lastButtonState = buttonState;
 
-  
-  
-  }
 
-void setDisplayMode(){
-  switch (buttonPushCounter) {
-    case 1:
-      //do something when var equals 1
-      lcd.clear();
-      lcd.setCursor (0, 0);       // go to start of 1nd line
-      lcd.print("Battery");
-      lcd.setCursor (0, 1);       // go to start of 1nd line
-      lcd.print("A 12,3v  B 11,3v");
-      break;
-    case 2:
-      //do something when var equals 2
-      lcd.clear();
-      lcd.setCursor (0, 0);       // go to start of 1nd line
-      lcd.print("Temp in: 21");
-      lcd.setCursor (0, 1);       // go to start of 1nd line
-      lcd.print("Temp out: 15");
-      break;
-    case 3:
-      //do something when var equals 2
-      lcd.clear();
-      lcd.setCursor (0, 0);       // go to start of 1nd line
-      lcd.print("Webasto: On");
-      lcd.setCursor (0, 1);       // go to start of 1nd line
-      lcd.print("Therm: 21,0 ");
-      break;
-    case 4:
-      //do something when var equals 2
-      lcd.clear();
-      lcd.setCursor (0, 0);       // go to start of 1nd line
-      lcd.print("");
-      break;
-    default: 
-      // if nothing else matches, do the default
-      // default is optional
-    break;
-  }
-  }
-  
+
+}
+
+void setDisplayMode() {
+
+}
+*/
+
+
+
