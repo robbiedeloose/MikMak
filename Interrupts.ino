@@ -4,8 +4,9 @@
 
 // Loop through info screens with button 1
 void pin1_ISR() {
-  //buttonState = digitalRead(BUTTON_1);
   lcdClearScreen();
+  // reset sleep timer
+  lastButtonPress  = millis();
   // go to next screen
   operatingMode++;
   // reset subscreen
@@ -15,12 +16,12 @@ void pin1_ISR() {
   //Serial.println(operatingMode);
 }
 
-// Loop through webasto settings with button 2
+// Loop through sub settings with button 2
 void pin2_ISR() {
-
-  // buttonState = digitalRead(BUTTON_2);
+  // reset sleep timer
+  lastButtonPress = millis();
+  // change to subscreen of change option
   subMode++;
-  //Serial.print("Webasto: ");
-  //Serial.println(subMode);
+
 }
 
