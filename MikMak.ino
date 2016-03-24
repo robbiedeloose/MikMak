@@ -42,7 +42,7 @@ String lcdLine = "";         // to collect valiables and write to lcd in one go
 String lcdLineOld = "";         // to collect valiables and write to lcd in one go
 
 
-int operatingMode = 1;    // 1 = Battery monitor, 2: temp, humidity, liquid level  3: Webasto thermostat, 4: duno :) options or something
+int operatingMode = 1;    // 1 = Battery monitor, 2: Webasto, more to come as additional sensors are added
 int subMode = 0;       // 0 = Off, 1 = On, 2 = Half, 3 = Auto
 
 // part for button interupts
@@ -55,8 +55,10 @@ float neededTemp = 21.0;
 int mode = 0;                // operation mode
 
 // timer variable
-unsigned long previousMillis = 0;   // last time values were checked
-const long interval = 5000;         // interval before checking again
+unsigned long previousMillis = 0;     // last time values were checked
+unsigned long lastButtonPress = 0;    // last time a button was pressed
+const long interval = 5000;           // interval before checking again
+const long sleepTimer = 60000;        // go to sleep after x seconds afetr last button press
 
 
 void setup() {
@@ -84,7 +86,15 @@ void setup() {
 void loop() {
 
   // TODO: set option variables -> not needed yet. possible to save these to sd card?
+  
+  //TODO: Check how long the arduino has not recieved adny input
+    unsigned long currentMillis2 = millis();
 
+  if (currentMillis2 - lastButtonPress >= sleepTimer) {
+    // save the last time you blinked the LED
+    operatingMode = 0;
+  }
+  
   // read sensor values and populate variables
   readAllSensors();           // found in SensorLogging.ino
 
@@ -98,6 +108,7 @@ void loop() {
   switch (operatingMode) {
     case 0:
       // sleep mode: do nothing for one minute and read sensors again
+      ShowLcdDisplay(0);
       delay(60000);
     case 1:
       //do something when var equals 1 --> Battery info
