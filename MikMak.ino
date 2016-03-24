@@ -112,9 +112,11 @@ void loop() {
       delay(60000);
     case 1:
       //do something when var equals 1 --> Battery info
+      ShowLcdDisplay(1);
       displayScreen1();
       break;
     case 2:
+      ShowLcdDisplay(1);
       displayScreen2();
       webastoSettings();
       break;
