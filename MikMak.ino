@@ -1,11 +1,11 @@
-
-
 //Include libraries
 #include <Wire.h>
 #include <LCD.h>
 #include <LiquidCrystal_I2C.h>
 #include <SoftwareSerial.h>
-
+#include <LowPower.h>
+/* Include the Hobby Components RTC library */
+#include <HCRTC.h>
 
 // pins for Serial LCD
 #define LCD_DISPLAY_TX_PIN           7
@@ -22,14 +22,22 @@
 #define SENSOR_1_BAT_1  A0  // Voltage divider 1
 #define SENSOR_2_BAT_2  A1  // Voltage divider 2
 
+/* Define the I2C addresses for the RTC and EEPROM */
+#define I2CDS1307Add 0x68
+#define I2C24C32Add  0x50
+
+/* Create an instance of HCRTC library */
+HCRTC HCRTC;
+
 // LCD instance
 SoftwareSerial displayLCD(0, LCD_DISPLAY_TX_PIN);
+int lcdState = 1;
 
-int buttonPlusState = 0;
-int buttonPlusOldState = 0;
-int buttonMinState = 0;
-int buttonMinOldState = 0;
-
+// Button state vriables
+// int buttonPlusState = 0;
+// int buttonPlusOldState = 0;
+// int buttonMinState = 0;
+// int buttonMinOldState = 0;
 
 // variables to store sensor data
 int sensorValue = 0;        // variable to pass on sensor info
@@ -41,7 +49,7 @@ float voltBat2 = 0;          // convert sensor value to true voltage withe volta
 String lcdLine = "";         // to collect valiables and write to lcd in one go
 String lcdLineOld = "";         // to collect valiables and write to lcd in one go
 
-
+// variables to store operating mode
 int operatingMode = 1;    // 1 = Battery monitor, 2: Webasto, more to come as additional sensors are added
 int subMode = 0;       // 0 = Off, 1 = On, 2 = Half, 3 = Auto
 
@@ -55,10 +63,16 @@ float neededTemp = 21.0;
 int mode = 0;                // operation mode
 
 // timer variable
-unsigned long previousMillis = 0;     // last time values were checked
+unsigned long lastRead = 0;     // last time values were checked
+unsigned long lastWrite = 0;     // last time values were written to log
 unsigned long lastButtonPress = 0;    // last time a button was pressed
-const long interval = 5000;           // interval before checking again
-const long sleepTimer = 60000;        // go to sleep after x seconds afetr last button press
+const long readInterval = 2000;       // interval before checking again
+const long writeInterval = 30000;     // interval before checking again
+const long sleepTimer = 10000;        // go to sleep after x seconds afetr last button press
+
+// RTC variables
+int lastMin = 0;
+int lastSec = 0;
 
 
 void setup() {
@@ -66,39 +80,42 @@ void setup() {
   // start display
   displayLCD.begin(9600);
   displayLCD.write((byte)4);
+
   // initialize serial communication to usb:
   Serial.begin(9600);
+
+  /* Use the RTCWrite library function to set the time and date.
+   Parameters are: I2C address, year, month, date, hour, minute, second,
+   day of week */
+  // uncomment line below to reset date on RTC
+  // HCRTC.RTCWrite(I2CDS1307Add, 16, 3, 27, 21, 36, 0, 7);
 
   // set pinModes
   pinMode(BUTTON_1, INPUT);
   pinMode(BUTTON_2, INPUT);
   pinMode(BUTTON_MIN, INPUT);
   pinMode(BUTTON_PLUS, INPUT);
-  //pinMode(ledPin, OUTPUT);
 
-
-  // part for interupts
+  // define interrupts for the 2 mode buttons
   attachInterrupt(digitalPinToInterrupt(BUTTON_1), pin1_ISR, FALLING);
   attachInterrupt(digitalPinToInterrupt(BUTTON_2), pin2_ISR, FALLING);
 }
 
-
 void loop() {
 
-  // TODO: set option variables -> not needed yet. possible to save these to sd card?
-  
+  // Read current time
+
+  /* Read the current time from the RTC module */
+  HCRTC.RTCRead(I2CDS1307Add);
+
   //TODO: Check how long the arduino has not recieved adny input
-    unsigned long currentMillis2 = millis();
+  unsigned long currentMillis2 = millis();
 
   if (currentMillis2 - lastButtonPress >= sleepTimer) {
     // save the last time you blinked the LED
     operatingMode = 0;
   }
-  
-  // read sensor values and populate variables
-  readAllSensors();           // found in SensorLogging.ino
 
-  // TODO: write variables to sd card for logging without Raspberry Pi
 
   // write variables to serial out for logging on the Raspberry Pi
   printVariablesToSerial();   // found in SensorLogging.ino
@@ -109,21 +126,39 @@ void loop() {
     case 0:
       // sleep mode: do nothing for one minute and read sensors again
       ShowLcdDisplay(0);
-      delay(60000);
+      //write to log or serial
+      printVariablesToSerial();   // found in SensorLogging.ino
+      // ATmega328P, ATmega168
+      //LowPower.idle(SLEEP_8S, ADC_OFF, TIMER2_OFF, TIMER1_OFF, TIMER0_OFF,
+      //              SPI_OFF, USART0_OFF, TWI_OFF);
+      //delay(1000);
+      // ATmega2560
+      LowPower.idle(SLEEP_8S, ADC_OFF, TIMER5_OFF, TIMER4_OFF, TIMER3_OFF,
+                    TIMER2_OFF, TIMER1_OFF, TIMER0_OFF, SPI_OFF, USART3_OFF, USART2_OFF, USART1_OFF,
+                    USART0_OFF, TWI_OFF);
+      Serial.println("SleepCycle");
+      delay(50);
+      break;
     case 1:
+      //Serial.println("Mode 1");
       //do something when var equals 1 --> Battery info
+      // read sensor values and populate variables
+      readAllSensorsDelay();           // found in SensorLogging.ino
       ShowLcdDisplay(1);
       displayScreen1();
       break;
     case 2:
+      // Serial.println("Mode 2");
+      // read sensor values and populate variables
+      readAllSensorsDelay();           // found in SensorLogging.ino
       ShowLcdDisplay(1);
       displayScreen2();
       webastoSettings();
       break;
     default:
+      // Serial.println("start over");
       // operating mode is bigger than possible options
       operatingMode = 1;
       break;
   }
-  delay(200);
 }

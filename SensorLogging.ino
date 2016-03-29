@@ -4,42 +4,62 @@
  *  for now only voltage is read. Other sensors are to be installed.
  */
 
-void readAllSensors() {
-
+void readAllSensorsDelay(){
   unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= interval) {
-    // save the last time you blinked the LED
-    previousMillis = currentMillis;
-
-    // read the value from volatge divider 1 and calvulate real voltage
-    voltBat1 = (analogRead(SENSOR_1_BAT_1) * (5.0 / 1023.0) * 3) - 0.13;
-
-    // read the value from volatge divider 2 and calvulate real voltage
-    voltBat2 = (analogRead(SENSOR_2_BAT_2) * (5.0 / 1023.0) * 3) - 0.13;
-
-    // TODO: read shunt from battery 1
-
-    // TODO: read water sensor 1
-
-    // TODO: read water sensor 2
-
-    // TODO: read temp sensor interior
-
-    // TODO: read temp sensor exterior
-
+  if(currentMillis - lastRead > readInterval) {
+    readAllSensors();
+    lastRead = currentMillis;   
   }
 }
 
-/*
- *  Put all sensordata in a single string and send it to usb output
- *  If arduino is connected to raspberry pi data can be collected and displayed on a webserver.
- */
+void readAllSensors() {
+
+  int currentSec = HCRTC.GetSecond();
+  //  Serial.println(currentSec);
+  //  Serial.println(lastSec);
+  //  delay(50);
+  //  if (currentSec - lastSec > 3) {
+
+  // save the last time you read the values
+
+  // read the value from volatge divider 1 and calvulate real voltage
+  voltBat1 = (analogRead(SENSOR_1_BAT_1) * (5.0 / 1023.0) * 3) - 0.13;
+
+  // read the value from volatge divider 2 and calvulate real voltage
+  voltBat2 = (analogRead(SENSOR_2_BAT_2) * (5.0 / 1023.0) * 3) - 0.13;
+
+  Serial.println("read");
+  delay (50);
+  //    lastSec = currentSec;
+  //
+  //    if (lastSec >= 40) {
+  //      lastSec = 0;
+  //    }
+
+//}
+
+
+
+}
 
 void printVariablesToSerial() {
-  String variableList;
-  variableList = variableList + voltBat1 + ";" + voltBat2;
-  Serial.println(variableList);
+  int currentMin = HCRTC.GetMinute();
+  if (currentMin - lastMin != 0) {
+    readAllSensors();
+    Serial.print(HCRTC.GetDateString());
+    Serial.print(" ");
+    Serial.print(HCRTC.GetTimeString());
+    Serial.print("; ");
+    Serial.print("Bat1;");
+    Serial.print(voltBat1);
+    Serial.print("v; ");
+    Serial.print("Bat2;");
+    Serial.print(voltBat2);
+    Serial.print("v; ");
+    Serial.println();
+    delay (50);
+  }
+  lastMin = currentMin;
 }
 
 

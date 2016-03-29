@@ -13,6 +13,7 @@ void  webastoSettings() {
       displayLCD.write((byte)0);
       displayLCD.write((byte)2);
       displayLCD.print("                    ");
+      delay(50);
       break;
     case 1:
       displayLCD.write((byte)17);
@@ -24,6 +25,7 @@ void  webastoSettings() {
       displayLCD.write((byte)0);
       displayLCD.write((byte)2);
       displayLCD.print("                    ");
+      delay(50);
       break;
     case 2:
       displayLCD.write((byte)17);
@@ -35,6 +37,7 @@ void  webastoSettings() {
       displayLCD.write((byte)0);
       displayLCD.write((byte)2);
       displayLCD.print("                    ");
+      delay(50);
       break;
     case 3:
       displayLCD.write((byte)17);
@@ -48,7 +51,7 @@ void  webastoSettings() {
       displayLCD.print("Thermostat - ");
       displayLCD.print(neededTemp);
       displayLCD.print(" +");
-      
+      delay(50);
 
       // check temp buttons
       buttonState = digitalRead(BUTTON_MIN);
