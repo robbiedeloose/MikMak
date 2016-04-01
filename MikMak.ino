@@ -17,6 +17,12 @@
 #define BUTTON_MIN      4   // set temperature -
 #define BUTTON_PLUS     5   // set temperature +
 
+// pins for relais
+#define RELAY_1         22
+#define RELAY_2         24
+#define RELAY_3         26
+#define RELAY_4         28
+
 // pins for sensors
 
 #define SENSOR_1_BAT_1  A0  // Voltage divider 1
@@ -70,6 +76,9 @@ const long readInterval = 2000;       // interval before checking again
 const long writeInterval = 30000;     // interval before checking again
 const long sleepTimer = 10000;        // go to sleep after x seconds afetr last button press
 
+unsigned long thermostatTimer = 0;    // sets a delay between thermostat selection and setting the relay
+const long thermostatDelay = 5000;    // this will keep webasto from going into aftercool when going through the options
+
 // RTC variables
 int lastMin = 0;
 int lastSec = 0;
@@ -90,11 +99,22 @@ void setup() {
   // uncomment line below to reset date on RTC
   // HCRTC.RTCWrite(I2CDS1307Add, 16, 3, 27, 21, 36, 0, 7);
 
-  // set pinModes
+  // set button pinModes
   pinMode(BUTTON_1, INPUT);
   pinMode(BUTTON_2, INPUT);
   pinMode(BUTTON_MIN, INPUT);
   pinMode(BUTTON_PLUS, INPUT);
+
+  // set relay pinModes
+  pinMode(RELAY_1, OUTPUT);
+  pinMode(RELAY_2, OUTPUT);
+  pinMode(RELAY_3, OUTPUT);
+  pinMode(RELAY_4, OUTPUT);
+
+  digitalWrite(RELAY_1, HIGH);
+  digitalWrite(RELAY_2, HIGH);
+  digitalWrite(RELAY_3, HIGH);
+  digitalWrite(RELAY_4, HIGH);
 
   // define interrupts for the 2 mode buttons
   attachInterrupt(digitalPinToInterrupt(BUTTON_1), pin1_ISR, FALLING);
@@ -104,7 +124,6 @@ void setup() {
 void loop() {
 
   // Read current time
-
   /* Read the current time from the RTC module */
   HCRTC.RTCRead(I2CDS1307Add);
 
@@ -116,9 +135,8 @@ void loop() {
     operatingMode = 0;
   }
 
+  // do webast stuff
 
-  // write variables to serial out for logging on the Raspberry Pi
-  printVariablesToSerial();   // found in SensorLogging.ino
 
   // TODO: actions based on mode selected: battery, alarms, temperature, ...
 
@@ -126,6 +144,7 @@ void loop() {
     case 0:
       // sleep mode: do nothing for one minute and read sensors again
       ShowLcdDisplay(0);
+      digitalWrite(RELAY_3, HIGH);
       //write to log or serial
       printVariablesToSerial();   // found in SensorLogging.ino
       // ATmega328P, ATmega168
@@ -146,6 +165,7 @@ void loop() {
       readAllSensorsDelay();           // found in SensorLogging.ino
       ShowLcdDisplay(1);
       displayScreen1();
+        digitalWrite(RELAY_3, LOW);
       break;
     case 2:
       // Serial.println("Mode 2");
@@ -154,6 +174,7 @@ void loop() {
       ShowLcdDisplay(1);
       displayScreen2();
       webastoSettings();
+      digitalWrite(RELAY_3, LOW);
       break;
     default:
       // Serial.println("start over");

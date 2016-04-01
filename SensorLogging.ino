@@ -4,11 +4,11 @@
  *  for now only voltage is read. Other sensors are to be installed.
  */
 
-void readAllSensorsDelay(){
+void readAllSensorsDelay() {
   unsigned long currentMillis = millis();
-  if(currentMillis - lastRead > readInterval) {
+  if (currentMillis - lastRead > readInterval) {
     readAllSensors();
-    lastRead = currentMillis;   
+    lastRead = currentMillis;
   }
 }
 
@@ -28,6 +28,8 @@ void readAllSensors() {
   // read the value from volatge divider 2 and calvulate real voltage
   voltBat2 = (analogRead(SENSOR_2_BAT_2) * (5.0 / 1023.0) * 3) - 0.13;
 
+  thermostat();
+
   Serial.println("read");
   delay (50);
   //    lastSec = currentSec;
@@ -36,7 +38,7 @@ void readAllSensors() {
   //      lastSec = 0;
   //    }
 
-//}
+  //}
 
 
 

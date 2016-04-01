@@ -10,7 +10,7 @@ void pin1_ISR() {
   // go to next screen
   operatingMode++;
   // reset subscreen
-  subMode = 0;
+  //subMode = 0;
   Serial.println("Knop1");
 
   //Serial.print("Operation: ");
