@@ -1,3 +1,36 @@
+void  webastoSettings() {
+
+  switch (subMode) {
+    case 0:
+  
+      break;
+    case 1:
+
+      break;
+    case 2:
+
+      break;
+    case 3:
+      // check temp buttons
+      buttonState = digitalRead(BUTTON_MIN);
+      if (buttonState == LOW) {
+        neededTemp = neededTemp - 0.5;
+      }
+      buttonState = digitalRead(BUTTON_PLUS);
+      if (buttonState == LOW) {
+        neededTemp = neededTemp + 0.5;
+      }
+
+      break;
+    default:
+      // operating mode is bigger than possible options
+      subMode = 0;
+      break;
+  }
+
+
+}
+
 void  thermostat() {
 
   Serial.println("Webasto");

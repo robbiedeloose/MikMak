@@ -28,7 +28,18 @@ void readAllSensors() {
   // read the value from volatge divider 2 and calvulate real voltage
   voltBat2 = (analogRead(SENSOR_2_BAT_2) * (5.0 / 1023.0) * 3) - 0.13;
 
-  thermostat();
+
+  /* ADA read - - - - - - - - - - - - - -            */
+
+   int16_t results;
+  
+  results = ads.readADC_Differential_0_1();  
+  
+  amps = ((float)results * 256.0) / 32768.0;//100mv shunt
+  amps = amps * 1.333; //uncomment for 75mv shunt
+  //amps = amps * 2; //uncomment for 50mv shunt
+
+  /* - - - - - - - - - - - - - - - -                  */
 
   Serial.println("read");
   delay (50);
@@ -52,14 +63,18 @@ void printVariablesToSerial() {
     Serial.print(" ");
     Serial.print(HCRTC.GetTimeString());
     Serial.print("; ");
-    Serial.print("Bat1;");
+    Serial.print("Bat1:");
     Serial.print(voltBat1);
     Serial.print("v; ");
-    Serial.print("Bat2;");
+    Serial.print("Bat1:");
+    Serial.print(amps);
+    Serial.print("A; ");
+    Serial.print("Bat2:");
     Serial.print(voltBat2);
     Serial.print("v; ");
+    
     Serial.println();
-    delay (50);
+    delay (80);
   }
   lastMin = currentMin;
 }
