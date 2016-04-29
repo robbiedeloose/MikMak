@@ -1,5 +1,7 @@
 
 
+
+////INCLUDES ////////////////////////////////////////////////////////////////////////////////////////
 //Include libraries
 #include <Wire.h>
 #include <LCD.h>
@@ -8,7 +10,13 @@
 #include <LowPower.h>
 #include <HCRTC.h> //Hobby Components RTC library 
 #include <Adafruit_ADS1015.h>
+#include <SPI.h>
+#include <SD.h>
 
+/* DIO pin used to control the SD card CS pin */
+#define SD_CS_DIO 10
+
+//// PINS ///////////////////////////////////////////////////////////////////////////////////////////
 // pins for buttons
 #define BUTTON_1        2   // cycle through screens
 #define BUTTON_2        3   // subscreen or switch on webasto -> off/on/half/auto       
@@ -28,6 +36,9 @@
 #define SENSOR_1_BAT_1  A0  // Voltage divider 1
 #define SENSOR_2_BAT_2  A1  // Voltage divider 2
 
+// pins for SD card
+// #define SD_CS_DIO 10
+
 //// LCD defines ///////////////////////////////////////////////////////////////////////////////////
 #define I2C_ADDR    0x27 // <<----- Add your address here.  Find it from I2C Scanner
 #define BACKLIGHT_PIN     3
@@ -42,26 +53,27 @@
 LiquidCrystal_I2C  lcd(I2C_ADDR, En_pin, Rw_pin, Rs_pin, D4_pin, D5_pin, D6_pin, D7_pin);
 
 
-/* Ada1115 board */
+//// ADS1115 init //////////////////////////////////////////////////////////////////////////////////
 Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
 
+//// RTC ///////////////////////////////////////////////////////////////////////////////////////////
 /* Define the I2C addresses for the RTC and EEPROM */
 #define I2CDS1307Add 0x68
 #define I2C24C32Add  0x50
-
 /* Create an instance of HCRTC library */
 HCRTC HCRTC;
 
-int lcdState = 1;
+//// SD CARD init //////////////////////////////////////////////////////////////////////////////////
+/* DIO pin used to control the SD card CS pin */
+File SD_File;
 
+//// VARIABLES /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // variables to store sensor data
-int sensorValue = 0;        // variable to pass on sensor info
-int sensorValue2 = 1;        // variable to store the value coming from sensor A2
 
-float voltBat1 = 0;          // convert sensor value to true voltage withe voltage divider formula (x3)
-float voltBat2 = 0;          // convert sensor value to true voltage withe voltage divider formula (x3)
-
-float amps = 0;              // Amperes
+float voltBat1 = 0;     // convert sensor value to true voltage withe voltage divider formula (x3)
+float voltBat2 = 0;     // convert sensor value to true voltage withe voltage divider formula (x3)
+float ampBat1 = 0;      // Amperes
+float ampBat2 = 0;      // Amperes
 
 String lcdLine = "";         // to collect valiables and write to lcd in one go
 String lcdLineOld = "";         // to collect valiables and write to lcd in one go
@@ -96,6 +108,22 @@ int lastSec = 0;
 
 
 void setup() {
+
+  //// SD CARD init /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  // Set the SD card CS pin to an output
+  pinMode(SD_CS_DIO, OUTPUT);
+  // Initialise the SD card
+  if (!SD.begin(SD_CS_DIO))
+  {
+    // If there was an error output this to the serial port and go no further
+    Serial.println("ERROR: SD card failed to initialise");
+    while (1);
+  } else
+  {
+    Serial.println("SD Card OK");
+  }
+
 
   //// USB SERIAL init ////////////////////////////////////////////////////////////////////////////////////////
   Serial.begin(9600);
@@ -138,6 +166,7 @@ void loop() {
 
   // Read current time
   HCRTC.RTCRead(I2CDS1307Add);
+  //xSerial.println(HCRTC.GetTimeString());
   //TODO: Check how long the arduino has not recieved adny input
   unsigned long currentMillis2 = millis();
 

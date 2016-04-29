@@ -14,48 +14,33 @@ void readAllSensorsDelay() {
 
 void readAllSensors() {
 
-  int currentSec = HCRTC.GetSecond();
-  //  Serial.println(currentSec);
-  //  Serial.println(lastSec);
-  //  delay(50);
-  //  if (currentSec - lastSec > 3) {
-
-  // save the last time you read the values
-
-  // read the value from volatge divider 1 and calvulate real voltage
-  voltBat1 = (analogRead(SENSOR_1_BAT_1) * (5.0 / 1023.0) * 3) - 0.13;
-
-  // read the value from volatge divider 2 and calvulate real voltage
-  voltBat2 = (analogRead(SENSOR_2_BAT_2) * (5.0 / 1023.0) * 3) - 0.13;
-
-
-  /* ADA read - - - - - - - - - - - - - -            */
-
-   int16_t results;
-  
-  results = ads.readADC_Differential_0_1();  
-  
-  amps = ((float)results * 256.0) / 32768.0;//100mv shunt
-  amps = amps * 1.333; //uncomment for 75mv shunt
-  //amps = amps * 2; //uncomment for 50mv shunt
-
-  /* - - - - - - - - - - - - - - - -                  */
-
   Serial.println("read");
   delay (50);
-  //    lastSec = currentSec;
-  //
-  //    if (lastSec >= 40) {
-  //      lastSec = 0;
-  //    }
 
-  //}
+  // Read voltages //////////////////////////////////////////
+  voltBat1 = (analogRead(SENSOR_1_BAT_1) * (5.0 / 1023.0) * 3) - 0.13;
+  voltBat2 = (analogRead(SENSOR_2_BAT_2) * (5.0 / 1023.0) * 3) - 0.13;
 
-
+  // read amps /////////////////////////////////////////////
+  int16_t results;
+  results = ads.readADC_Differential_0_1();
+  ampBat1 = ((float)results * 256.0) / 32768.0;//100mv shunt
+  ampBat1 = ampBat1 * 1.333; //uncomment for 75mv shunt
+  //ampBat1 = ampBat1 * 2; //uncomment for 50mv shunt
+  results = ads.readADC_Differential_2_3();
+  ampBat2 = ((float)results * 256.0) / 32768.0;//100mv shunt
+  ampBat2 = ampBat2 * 1.333; //uncomment for 75mv shunt
+  //ampBat2= ampBat2 * 2; //uncomment for 50mv shunt
 
 }
 
 void printVariablesToSerial() {
+
+  //// Write to SD card ////////////////////////////////
+  /* Open the data.csv file to save our data to.
+     If the file already exists it will just tag our new data onto the end of it */
+
+  //// Write to Serial //////////////////////////////////
   int currentMin = HCRTC.GetMinute();
   if (currentMin - lastMin != 0) {
     readAllSensors();
@@ -67,16 +52,45 @@ void printVariablesToSerial() {
     Serial.print(voltBat1);
     Serial.print("v; ");
     Serial.print("Bat1:");
-    Serial.print(amps);
+    Serial.print(ampBat1);
     Serial.print("A; ");
     Serial.print("Bat2:");
     Serial.print(voltBat2);
     Serial.print("v; ");
-    
+    Serial.print("Bat2:");
+    Serial.print(ampBat2);
+    Serial.print("A; ");
+
     Serial.println();
     delay (80);
+
+    
+  SD_File = SD.open("data.csv", FILE_WRITE);
+
+  if (SD_File)
+  {
+    SD_File.print(HCRTC.GetDateString());
+    SD_File.print(" ");
+    SD_File.print(HCRTC.GetTimeString());
+    SD_File.print("; ");
+    SD_File.print("Bat1:");
+    SD_File.print(voltBat1);
+    SD_File.print("v; ");
+    SD_File.print("Bat1:");
+    SD_File.print(ampBat1);
+    SD_File.print("A; ");
+    SD_File.print("Bat2:");
+    SD_File.print(voltBat2);
+    SD_File.print("v; ");
+    SD_File.print("Bat2:");
+    SD_File.print(ampBat2);
+    SD_File.println("A; ");
+    SD_File.close();
+  }
+
   }
   lastMin = currentMin;
+
 }
 
 
