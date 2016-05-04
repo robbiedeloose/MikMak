@@ -12,6 +12,7 @@
 #include <Adafruit_ADS1015.h>
 #include <SPI.h>
 #include <SD.h>
+#include <DHT.h>
 
 /* DIO pin used to control the SD card CS pin */
 #define SD_CS_DIO 10
@@ -20,11 +21,11 @@
 // pins for buttons
 #define BUTTON_1        2   // cycle through screens
 #define BUTTON_2        3   // subscreen or switch on webasto -> off/on/half/auto       
-#define BUTTON_MIN      4   // set temperature -
-#define BUTTON_PLUS     5   // set temperature +
+#define BUTTON_MIN      8   // set temperature -
+#define BUTTON_PLUS     7   // set temperature +
 
 // pin for leds (Digital PWM)
-#define LED_DATA        8
+#define LED_DATA        4
 
 // pins for relais (Digital)
 #define RELAY_1         9
@@ -33,8 +34,11 @@
 #define RELAY_4         12
 
 // pins for sensors
-#define SENSOR_1_BAT_1  A0  // Voltage divider 1
+#define SENSOR_1_BAT_1  A7  // Voltage divider 1
 #define SENSOR_2_BAT_2  A1  // Voltage divider 2
+
+// pins for Temp sensor
+#define DHTPIN 5     // what digital pin we're connected to
 
 // pins for SD card
 // #define SD_CS_DIO 10
@@ -66,6 +70,14 @@ HCRTC HCRTC;
 //// SD CARD init //////////////////////////////////////////////////////////////////////////////////
 /* DIO pin used to control the SD card CS pin */
 File SD_File;
+
+
+//// DHT Type /////////////////////////////////////////////////////////////////////////////////////
+// Uncomment whatever type you're using!
+#define DHTTYPE DHT11   // DHT 11
+//#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
+//#define DHTTYPE DHT21   // DHT 21 (AM2301)
+DHT dht(DHTPIN, DHTTYPE);
 
 //// VARIABLES /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // variables to store sensor data
@@ -106,24 +118,29 @@ const long thermostatDelay = 5000;    // this will keep webasto from going into 
 int lastMin = 0;
 int lastSec = 0;
 
+// HTC variables
+float h; // humidity
+float t; // temperature
+
 
 void setup() {
 
   //// SD CARD init /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Set the SD card CS pin to an output
-  pinMode(SD_CS_DIO, OUTPUT);
-  // Initialise the SD card
-  if (!SD.begin(SD_CS_DIO))
-  {
-    // If there was an error output this to the serial port and go no further
-    Serial.println("ERROR: SD card failed to initialise");
-    while (1);
-  } else
-  {
-    Serial.println("SD Card OK");
-  }
-
+  /*
+    // Set the SD card CS pin to an output
+    pinMode(SD_CS_DIO, OUTPUT);
+    // Initialise the SD card
+    if (!SD.begin(SD_CS_DIO))
+    {
+      // If there was an error output this to the serial port and go no further
+      Serial.println("ERROR: SD card failed to initialise");
+      while (1);
+    } else
+    {
+      Serial.println("SD Card OK");
+    }
+  */
 
   //// USB SERIAL init ////////////////////////////////////////////////////////////////////////////////////////
   Serial.begin(9600);
@@ -137,6 +154,9 @@ void setup() {
   lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
   lcd.setBacklight(HIGH);
   lcd.home (); // go home
+
+  // DHT init
+  dht.begin();
 
   //// SET PINMODES ///////////////////////////////////////////////////////////////////////////////////////////
   pinMode(BUTTON_1, INPUT);
@@ -159,11 +179,17 @@ void setup() {
   digitalWrite(RELAY_4, HIGH);
 
   // uncomment line below to reset date on RTC
-  // HCRTC.RTCWrite(I2CDS1307Add, 16, 3, 27, 21, 36, 0, 7);
+    /* Use the RTCWrite library function to set the time and date. 
+     Parameters are: I2C address, year, month, date, hour, minute, second, 
+     day of week */
+   //HCRTC.RTCWrite(I2CDS1307Add, 16, 5, 4, 19, 57, 0, 3);
+
+  Serial.println("Started");
 }
 
 void loop() {
 
+  //Serial.println("loop");
   // Read current time
   HCRTC.RTCRead(I2CDS1307Add);
   //xSerial.println(HCRTC.GetTimeString());

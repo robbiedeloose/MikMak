@@ -14,11 +14,9 @@ void displayScreen() {
     case 2:
 
       lcd.setCursor (0, 0);       // go to start of 1st line
-      lcd.print("Temp:           ");
-
-      lcd.home();
-      lcd.setCursor (0, 1);       // go to start of 1st line
-      lcd.print("21 c      ");
+      lcd.print("Temp: ");
+      lcd.print(t);
+       lcd.home();
       break;
   }
 }

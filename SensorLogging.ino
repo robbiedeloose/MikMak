@@ -32,6 +32,20 @@ void readAllSensors() {
   ampBat2 = ampBat2 * 1.333; //uncomment for 75mv shunt
   //ampBat2= ampBat2 * 2; //uncomment for 50mv shunt
 
+  // read temp and humidity ////////////////////////////
+
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  t = dht.readTemperature();
+  t = t -2;
+  // Check if any reads failed and exit early (to try again).
+  /*if (isnan(h) || isnan(t) || isnan(f)) {
+    Serial.println("Failed to read from DHT sensor!");
+  }*/
+
+
 }
 
 void printVariablesToSerial() {
@@ -60,33 +74,37 @@ void printVariablesToSerial() {
     Serial.print("Bat2:");
     Serial.print(ampBat2);
     Serial.print("A; ");
-
-    Serial.println();
+    Serial.print("Temp: ");
+    Serial.print(t);
+    Serial.print("c; Humidity: ");
+    Serial.print(h);
+    Serial.println(";");
+    
     delay (80);
 
-    
-  SD_File = SD.open("data.csv", FILE_WRITE);
 
-  if (SD_File)
-  {
-    SD_File.print(HCRTC.GetDateString());
-    SD_File.print(" ");
-    SD_File.print(HCRTC.GetTimeString());
-    SD_File.print("; ");
-    SD_File.print("Bat1:");
-    SD_File.print(voltBat1);
-    SD_File.print("v; ");
-    SD_File.print("Bat1:");
-    SD_File.print(ampBat1);
-    SD_File.print("A; ");
-    SD_File.print("Bat2:");
-    SD_File.print(voltBat2);
-    SD_File.print("v; ");
-    SD_File.print("Bat2:");
-    SD_File.print(ampBat2);
-    SD_File.println("A; ");
-    SD_File.close();
-  }
+    //SD_File = SD.open("data.csv", FILE_WRITE);
+
+    if (SD_File)
+    {
+      SD_File.print(HCRTC.GetDateString());
+      SD_File.print(" ");
+      SD_File.print(HCRTC.GetTimeString());
+      SD_File.print("; ");
+      SD_File.print("Bat1:");
+      SD_File.print(voltBat1);
+      SD_File.print("v; ");
+      SD_File.print("Bat1:");
+      SD_File.print(ampBat1);
+      SD_File.print("A; ");
+      SD_File.print("Bat2:");
+      SD_File.print(voltBat2);
+      SD_File.print("v; ");
+      SD_File.print("Bat2:");
+      SD_File.print(ampBat2);
+      SD_File.println("A; ");
+      SD_File.close();
+    }
 
   }
   lastMin = currentMin;
