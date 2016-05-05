@@ -109,7 +109,7 @@ unsigned long lastWrite = 0;     // last time values were written to log
 unsigned long lastButtonPress = 0;    // last time a button was pressed
 const long readInterval = 2000;       // interval before checking again
 const long writeInterval = 30000;     // interval before checking again
-const long sleepTimer = 10000;        // go to sleep after x seconds afetr last button press
+const long sleepTimer = 20000;        // go to sleep after x seconds afetr last button press
 
 unsigned long thermostatTimer = 0;    // sets a delay between thermostat selection and setting the relay
 const long thermostatDelay = 5000;    // this will keep webasto from going into aftercool when going through the options
